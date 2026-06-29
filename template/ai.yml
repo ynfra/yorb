@@ -1,0 +1,87 @@
+#cloud-config
+# yorb — OrbStack Ubuntu VM bootstrap
+# Installs: docker, php8.5 (ondrej), node22/npm, deno, bun,
+#           claude-code, codex, opencode, agent-browser
+#
+# Usage:
+#   orb create -c template/ai.yml ubuntu:24.04 <vm-name>
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - wget
+  - git
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  - software-properties-common
+  - openssh-client
+  - unzip
+  - zip
+  - jq
+  - mc
+  - build-essential
+  - htop
+  - tmux
+  - vim
+
+write_files:
+  - path: /root/yorb-setup.sh
+    permissions: '0700'
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      export HOME=/root
+      export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+
+      # --- Docker CE ---
+      curl -fsSL https://get.docker.com | sh
+      usermod -aG docker ubuntu || true
+
+      # --- PHP 8.5 via ondrej/php ---
+      LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
+      apt-get update -q
+      apt-get install -y \
+        php8.5 php8.5-cli php8.5-fpm php8.5-common \
+        php8.5-curl php8.5-mbstring php8.5-xml php8.5-zip \
+        php8.5-bcmath php8.5-gd php8.5-intl \
+        php8.5-mysql php8.5-pgsql php8.5-sqlite3 \
+        php8.5-redis php8.5-imagick
+
+      # --- Composer ---
+      curl -fsSL https://getcomposer.org/installer \
+        | php -- --install-dir=/usr/local/bin --filename=composer
+      chmod +x /usr/local/bin/composer
+
+      # --- Node.js 22 LTS + npm ---
+      curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+      apt-get install -y nodejs
+
+      # --- Deno (system-wide) ---
+      curl -fsSL https://deno.land/x/install/install.sh | DENO_INSTALL=/usr/local sh
+
+      # --- Bun (system-wide) ---
+      curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
+
+      # --- Claude Code ---
+      npm install -g @anthropic-ai/claude-code
+
+      # --- Codex ---
+      npm install -g @openai/codex
+
+      # --- opencode ---
+      curl -fsSL https://opencode.ai/install | bash
+      chmod 755 /root /root/.opencode /root/.opencode/bin /root/.opencode/bin/opencode
+      ln -sfn /root/.opencode/bin/opencode /usr/local/bin/opencode
+
+      # --- agent-browser ---
+      npm install -g agent-browser
+
+runcmd:
+  - /root/yorb-setup.sh
+
+final_message: |
+  yorb cloud-init complete.
+  Connect: orb shell <vm-name>  |  ssh <vm-name>@orb
