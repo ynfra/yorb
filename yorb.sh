@@ -43,13 +43,28 @@ command -v orb >/dev/null 2>&1 || {
     exit 1
 }
 
+# Read git identity from host and render template via envsubst
+export GIT_NAME="$(git config --global user.name 2>/dev/null || echo '')"
+export GIT_EMAIL="$(git config --global user.email 2>/dev/null || echo '')"
+
+if [[ -z "${GIT_NAME}" || -z "${GIT_EMAIL}" ]]; then
+    echo "WARN: host git identity incomplete — git config will stay unset in the VM." >&2
+    echo "      Fix with: git config --global user.name '...' && git config --global user.email '...'" >&2
+fi
+
+RENDERED="${SCRIPT_DIR}/template/.${TEMPLATE}.rendered.yml"
+trap 'rm -f "${RENDERED}"' EXIT
+
+envsubst '${GIT_NAME} ${GIT_EMAIL}' < "${CLOUD_INIT}" > "${RENDERED}"
+
 echo "=== yorb: creating OrbStack VM ==="
 echo "  name     : ${VM_NAME}"
 echo "  template : ${TEMPLATE}  (${CLOUD_INIT})"
 echo "  distro   : ${DISTRO}"
+echo "  git      : ${GIT_NAME} <${GIT_EMAIL}>"
 echo ""
 
-orb create -c "${CLOUD_INIT}" "${DISTRO}" "${VM_NAME}"
+orb create -c "${RENDERED}" "${DISTRO}" "${VM_NAME}"
 
 echo ""
 echo "=== done — connect with ==="
