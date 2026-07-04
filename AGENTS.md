@@ -7,8 +7,10 @@ One command creates a VM with the full vibecoding toolchain pre-installed.
 
 | Template | File | Description |
 |----------|------|-------------|
-| `ai` | `template/ai.yml` | Full toolchain (default) |
+| `ai` | `template/ai.yml` | Full toolchain (default) — works on Ubuntu and Debian |
 | `yai` | `template/yai.yml` | `ai` + clones `github.com/ynfra/yai` → `/srv/yai` |
+
+Both templates auto-detect the distro: Ubuntu uses `ppa:ondrej/php`, Debian uses `packages.sury.org`.
 
 ## What gets installed (all templates)
 

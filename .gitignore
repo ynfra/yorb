@@ -1,0 +1,2 @@
+# Transient rendered cloud-init, created by yorb.sh and removed on exit.
+template/.*.rendered.yml
