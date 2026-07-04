@@ -1,10 +1,11 @@
 #cloud-config
-# yorb — OrbStack Ubuntu VM bootstrap
-# Installs: docker, php8.5 (ondrej), node22/npm, deno, bun,
+# yorb/ai — OrbStack VM bootstrap (Ubuntu & Debian)
+# Installs: docker, php8.5 (ondrej/sury), node22/npm, deno, bun,
 #           claude-code, codex, opencode, agent-browser
 #
 # Usage:
 #   orb create -c template/ai.yml ubuntu:24.04 <vm-name>
+#   orb create -c template/ai.yml debian:trixie <vm-name>
 
 package_update: true
 package_upgrade: true
@@ -16,16 +17,17 @@ packages:
   - ca-certificates
   - gnupg
   - lsb-release
-  - software-properties-common
   - openssh-client
   - unzip
   - zip
   - jq
   - mc
+  - gettext-base
   - build-essential
   - htop
   - tmux
   - vim
+  - nano
 
 write_files:
   - path: /root/yorb-setup.sh
@@ -36,12 +38,23 @@ write_files:
       export HOME=/root
       export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 
+      DISTRO_ID="$(grep '^ID=' /etc/os-release | cut -d= -f2)"
+      CODENAME="$(lsb_release -cs)"
+
       # --- Docker CE ---
       curl -fsSL https://get.docker.com | sh
-      usermod -aG docker ubuntu || true
 
-      # --- PHP 8.5 via ondrej/php ---
-      LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
+      # --- PHP 8.5 ---
+      # Ubuntu: ondrej/php PPA  |  Debian: Sury apt repo
+      if [ "$DISTRO_ID" = "ubuntu" ]; then
+        apt-get install -y software-properties-common
+        LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
+      else
+        curl -fsSL https://packages.sury.org/php/apt.gpg \
+          | gpg --dearmor -o /etc/apt/keyrings/sury-php.gpg
+        echo "deb [signed-by=/etc/apt/keyrings/sury-php.gpg] https://packages.sury.org/php/ ${CODENAME} main" \
+          > /etc/apt/sources.list.d/sury-php.list
+      fi
       apt-get update -q
       apt-get install -y \
         php8.5 php8.5-cli php8.5-fpm php8.5-common \
@@ -78,6 +91,10 @@ write_files:
 
       # --- agent-browser ---
       npm install -g agent-browser
+
+      # --- Git identity (substituted by yorb.sh from host git config) ---
+      if [ -n "${GIT_NAME}" ];  then git config --system user.name  "${GIT_NAME}";  fi
+      if [ -n "${GIT_EMAIL}" ]; then git config --system user.email "${GIT_EMAIL}"; fi
 
 runcmd:
   - /root/yorb-setup.sh
