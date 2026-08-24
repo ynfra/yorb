@@ -1,53 +1,39 @@
-# yorb
+# ynfra / yorb
 
-OrbStack Ubuntu VM provisioned via cloud-init with the full vibecoding toolchain.
+OrbStack Ubuntu/Debian VM provisioned via cloud-init with the full vibecoding
+toolchain — Docker CE, PHP 8.5 + Composer, Node.js 22 LTS, Deno, Bun, Claude
+Code, Codex, opencode, and agent-browser. One command, ready to code.
 
-## Installed tools
+## Prerequisites
 
-- **Docker CE** — container runtime
-- **PHP 8.5** (ondrej/php) + Composer
-- **Node.js 22 LTS** + npm
-- **Deno** (system-wide)
-- **Bun** (system-wide)
-- **Claude Code** (`claude` CLI)
-- **Codex** (`codex` CLI)
-- **opencode** (`opencode` CLI + TUI)
-- **agent-browser** (browser automation CLI)
-- **htop, mc, git, ssh, curl, wget, jq** (system tools)
+- macOS with [OrbStack](https://orbstack.dev) installed (`orb` CLI on PATH)
+- Host git identity set (`git config --global user.name` / `user.email`) — it is copied into the VM; missing identity only warns
 
-## Quick start
+## Usage
 
 ```bash
-# Prerequisite: OrbStack installed (https://orbstack.dev)
+./yorb.sh                          # create VM "vibeenv" (ai template, ubuntu:24.04)
+orb shell vibeenv                  # interactive shell (or: ssh vibeenv@orb)
 
-git clone git@github.com:ynfra/yorb.git
-cd yorb
-./yorb.sh              # vibeenv, ai template, ubuntu:24.04
-
-# Connect
-orb shell vibeenv
+# custom name / template / distro
+./yorb.sh mydev yai ubuntu:22.04
 ```
 
-Custom name / template / distro:
+## Templates
 
-```bash
-./yorb.sh mydev                    # ai template (default)
-./yorb.sh mydev yai                # ai + yai repo cloned to /srv/yai
-./yorb.sh mydev yai ubuntu:22.04   # older LTS
-```
+| Template | File | Description |
+|---|---|---|
+| `ai` (default) | `template/ai.yml` | Full toolchain (list above) plus htop, mc, git, ssh, curl, wget, jq |
+| `yai` | `template/yai.yml` | `ai` + clones `github.com/ynfra/yai` to `/srv/yai` |
 
-Or directly with the `orb` CLI:
+`yorb.sh` renders the chosen template with your git identity (`envsubst`) and
+runs `orb create`. Direct equivalent without identity injection:
+`orb create -c template/ai.yml ubuntu:24.04 vibeenv`.
 
-```bash
-orb create -c template/ai.yml ubuntu:24.04 vibeenv
-```
+## Notes
 
-## Files
+- Cloud-init runs at first boot only — reprovision with `orb delete vibeenv && ./yorb.sh`.
+- Templates auto-detect the distro: Ubuntu uses `ppa:ondrej/php`, Debian uses `packages.sury.org` (PHP 8.5 is in neither distro's main repo).
+- Check provisioning output: `orb run -m vibeenv cat /var/log/cloud-init-output.log`.
 
-| File | Purpose |
-|------|---------|
-| `template/ai.yml` | cloud-init — full toolchain |
-| `template/yai.yml` | cloud-init — full toolchain + yai cloned to `/srv/yai` |
-| `yorb.sh` | `orb create` wrapper with template selection |
-
-See [AGENTS.md](AGENTS.md) for day-2 ops and editing guidance.
+See [AGENTS.md](AGENTS.md) for the per-tool install details, template editing rules, and day-2 operations.
