@@ -19,7 +19,7 @@ Both templates auto-detect the distro from `/etc/os-release`: Ubuntu uses `ppa:o
 | Docker CE | `get.docker.com` install script |
 | PHP 8.5 + extensions | `ppa:ondrej/php` (Ubuntu) / `packages.sury.org` (Debian) |
 | Composer | official installer → `/usr/local/bin/composer` |
-| Node.js 22 LTS + npm | NodeSource |
+| Node.js 24 LTS + npm | NodeSource |
 | Deno | official installer → `/usr/local` |
 | Bun | official installer → `/usr/local` |
 | Claude Code | `npm install -g @anthropic-ai/claude-code` |
