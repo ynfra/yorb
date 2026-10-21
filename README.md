@@ -17,6 +17,10 @@ orb shell vibeenv                  # interactive shell (or: ssh vibeenv@orb)
 
 # custom name / template / distro
 ./yorb.sh mydev yai ubuntu:22.04
+./yorb.sh mydev ai debian:trixie   # Debian 13
+
+# provision an existing VM (cloud-init only runs at create)
+./yorb.sh --apply debian
 ```
 
 ## Templates
@@ -32,8 +36,8 @@ runs `orb create`. Direct equivalent without identity injection:
 
 ## Notes
 
-- Cloud-init runs at first boot only — reprovision with `orb delete vibeenv && ./yorb.sh`.
-- Templates auto-detect the distro: Ubuntu uses `ppa:ondrej/php`, Debian uses `packages.sury.org` (PHP 8.5 is in neither distro's main repo).
+- Cloud-init runs at first boot only — reprovision with `orb delete vibeenv && ./yorb.sh`, or replay a template on an existing VM with `./yorb.sh --apply <vm> [template]`.
+- Templates auto-detect the distro: Ubuntu uses `ppa:ondrej/php`, Debian uses `packages.sury.org` via `debsuryorg-archive-keyring` (PHP 8.5 is in neither distro's main repo).
 - Check provisioning output: `orb run -m vibeenv cat /var/log/cloud-init-output.log`.
 
 See [AGENTS.md](AGENTS.md) for the per-tool install details, template editing rules, and day-2 operations.

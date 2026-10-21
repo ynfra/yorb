@@ -38,21 +38,27 @@ write_files:
       export HOME=/root
       export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 
-      DISTRO_ID="$(grep '^ID=' /etc/os-release | cut -d= -f2)"
-      CODENAME="$(lsb_release -cs)"
+      export DEBIAN_FRONTEND=noninteractive
+
+      . /etc/os-release
+      DISTRO_ID="$ID"
+      CODENAME="$VERSION_CODENAME"
+      DEFAULT_USER="$(getent passwd | awk -F: '$6 ~ "^/home/" { print $1; exit }')"  # OrbStack mirrors the macOS uid, not 1000
 
       # --- Docker CE ---
       curl -fsSL https://get.docker.com | sh
+      if [ -n "$DEFAULT_USER" ]; then usermod -aG docker "$DEFAULT_USER"; fi
 
       # --- PHP 8.5 ---
-      # Ubuntu: ondrej/php PPA  |  Debian: Sury apt repo
+      # Ubuntu: ondrej/php PPA  |  Debian: Sury apt repo (keyring via debsuryorg-archive-keyring)
       if [ "$DISTRO_ID" = "ubuntu" ]; then
         apt-get install -y software-properties-common
         LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
       else
-        curl -fsSL https://packages.sury.org/php/apt.gpg \
-          | gpg --dearmor -o /etc/apt/keyrings/sury-php.gpg
-        echo "deb [signed-by=/etc/apt/keyrings/sury-php.gpg] https://packages.sury.org/php/ ${CODENAME} main" \
+        curl -fsSL -o /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb
+        dpkg -i /tmp/debsuryorg-archive-keyring.deb
+        rm -f /tmp/debsuryorg-archive-keyring.deb
+        echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ ${CODENAME} main" \
           > /etc/apt/sources.list.d/sury-php.list
       fi
       apt-get update -q
