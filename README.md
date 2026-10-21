@@ -1,7 +1,7 @@
 # ynfra / yorb
 
 OrbStack Ubuntu/Debian VM provisioned via cloud-init with the full vibecoding
-toolchain — Docker CE, PHP 8.5 + Composer, Node.js 22 LTS, Deno, Bun, Claude
+toolchain — Docker CE, PHP 8.5 + Composer, Node.js 24 LTS, Deno, Bun, Claude
 Code, Codex, opencode, and agent-browser. One command, ready to code.
 
 ## Prerequisites
