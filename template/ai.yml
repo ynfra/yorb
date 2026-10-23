@@ -1,7 +1,7 @@
 #cloud-config
 # yorb/ai — OrbStack VM bootstrap (Ubuntu & Debian)
 # Installs: docker, php8.5 (ondrej/sury), node24/npm, deno, bun,
-#           claude-code, codex, opencode, agent-browser
+#           claude-code, codex, opencode, agent-browser, crit, plannotator
 #
 # Usage:
 #   orb create -c template/ai.yml ubuntu:24.04 <vm-name>
@@ -98,6 +98,21 @@ write_files:
 
       # --- agent-browser ---
       npm install -g agent-browser
+
+      # --- crit (binary only from GitHub releases, no agent integrations) ---
+      CRIT_ASSET="crit-linux-$(dpkg --print-architecture)"
+      CRIT_URL="https://github.com/tomasz-tomczyk/crit/releases/latest/download"
+      curl -fsSL -o "/tmp/${CRIT_ASSET}" "${CRIT_URL}/${CRIT_ASSET}"
+      (cd /tmp && curl -fsSL "${CRIT_URL}/checksums.txt" | grep " ${CRIT_ASSET}\$" | sha256sum -c -)
+      install -m 755 "/tmp/${CRIT_ASSET}" /usr/local/bin/crit
+      rm -f "/tmp/${CRIT_ASSET}"
+
+      # --- plannotator (binary only: --minimal skips skills, hooks and agent configs) ---
+      # Download first: the installer exits before reading all of stdin, so `curl | bash` hits SIGPIPE and pipefail aborts
+      curl -fsSL -o /tmp/plannotator-install.sh https://plannotator.ai/install.sh
+      bash /tmp/plannotator-install.sh --minimal --non-interactive
+      rm -f /tmp/plannotator-install.sh
+      install -m 755 /root/.local/bin/plannotator /usr/local/bin/plannotator
 
       # --- Git identity (substituted by yorb.sh from host git config) ---
       if [ -n "${GIT_NAME}" ];  then git config --system user.name  "${GIT_NAME}";  fi

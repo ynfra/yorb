@@ -26,6 +26,8 @@ Both templates auto-detect the distro from `/etc/os-release`: Ubuntu uses `ppa:o
 | Codex | `npm install -g @openai/codex` |
 | opencode | `opencode.ai/install` → `/usr/local/bin/opencode` |
 | agent-browser | `npm install -g agent-browser` |
+| crit | GitHub release binary (sha256-checked) → `/usr/local/bin/crit` (CLI only, no agent plugins) |
+| plannotator | `plannotator.ai/install.sh --minimal` → `/usr/local/bin/plannotator` (CLI only, no skills/hooks) |
 | htop, mc, git, ssh, curl, wget, jq | apt packages |
 
 ## Create a VM
@@ -86,4 +88,7 @@ Add new tools to the script block; keep commands idempotent.
 - PHP 8.5 requires `ppa:ondrej/php` — not in the Ubuntu 24.04 main repo.
 - `opencode` installs to `/root/.opencode`; the setup script symlinks the binary
   to `/usr/local/bin/opencode` and sets permissions so all users can execute it.
+- `plannotator` is installed with `--minimal`: binary only, no Claude/Codex/OpenCode
+  skills, hooks or slash commands. The installer always targets `$HOME/.local/bin`,
+  so the setup script copies it to `/usr/local/bin`.
 - Cloud-init runs at first boot only. Use `./yorb.sh --apply <vm>` for an existing VM, or delete and recreate it.
