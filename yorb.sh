@@ -11,7 +11,7 @@
 #   distro    ubuntu:24.04
 #
 # Available templates:
-#   ai    full toolchain (docker, php8.5, node, deno, bun, claude, codex, opencode, agent-browser)
+#   ai    full toolchain (docker, php8.5, node, deno, bun, claude, codex, opencode, agent-browser, crit, plannotator, gh, glab)
 #   yai   ai + clones github.com/ynfra/yai into /srv/yai
 #
 # Examples:

@@ -1,7 +1,7 @@
 #cloud-config
 # yorb/ai — OrbStack VM bootstrap (Ubuntu & Debian)
 # Installs: docker, php8.5 (ondrej/sury), node24/npm, deno, bun,
-#           claude-code, codex, opencode, agent-browser, crit, plannotator
+#           claude-code, codex, opencode, agent-browser, crit, plannotator, gh, glab
 #
 # Usage:
 #   orb create -c template/ai.yml ubuntu:24.04 <vm-name>
@@ -85,8 +85,36 @@ write_files:
       # --- Bun (system-wide) ---
       curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
 
-      # --- Claude Code ---
-      npm install -g @anthropic-ai/claude-code
+      # --- Claude Code (native installer, per-user so auto-update can write to it) ---
+      npm uninstall -g @anthropic-ai/claude-code >/dev/null 2>&1 || true  # drop the old npm install on --apply
+      curl -fsSL -o /tmp/claude-install.sh https://claude.ai/install.sh
+      chmod 644 /tmp/claude-install.sh
+      if [ -n "$DEFAULT_USER" ]; then
+        runuser -l "$DEFAULT_USER" -c 'bash /tmp/claude-install.sh'
+        # ~/.local/bin is only on PATH in login shells; this symlink also covers `orb run` and root
+        ln -sfn "/home/$DEFAULT_USER/.local/bin/claude" /usr/local/bin/claude
+      else
+        bash /tmp/claude-install.sh
+      fi
+      rm -f /tmp/claude-install.sh
+
+      # --- Claude Code defaults (merged into ~/.claude/settings.json; yorb keys win, other keys are kept) ---
+      CLAUDE_USER="${DEFAULT_USER:-root}"
+      CLAUDE_DIR="$(getent passwd "$CLAUDE_USER" | cut -d: -f6)/.claude"
+      install -d -o "$CLAUDE_USER" -g "$(id -gn "$CLAUDE_USER")" "$CLAUDE_DIR"
+      [ -s "$CLAUDE_DIR/settings.json" ] || echo '{}' > "$CLAUDE_DIR/settings.json"
+      cat > /tmp/yorb-claude-settings.json <<'JSON'
+      {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "model": "claude-sonnet-5-5",
+        "cleanupPeriodDays": 730,
+        "attribution": { "commit": "", "pr": "", "sessionUrl": false }
+      }
+      JSON
+      jq -s '.[0] * .[1]' "$CLAUDE_DIR/settings.json" /tmp/yorb-claude-settings.json > "$CLAUDE_DIR/settings.json.tmp"
+      mv "$CLAUDE_DIR/settings.json.tmp" "$CLAUDE_DIR/settings.json"
+      chown "$CLAUDE_USER:$(id -gn "$CLAUDE_USER")" "$CLAUDE_DIR/settings.json"
+      rm -f /tmp/yorb-claude-settings.json
 
       # --- Codex ---
       npm install -g @openai/codex
@@ -113,6 +141,24 @@ write_files:
       bash /tmp/plannotator-install.sh --minimal --non-interactive
       rm -f /tmp/plannotator-install.sh
       install -m 755 /root/.local/bin/plannotator /usr/local/bin/plannotator
+
+      # --- GitHub CLI (official apt repo) ---
+      install -d -m 755 /etc/apt/keyrings
+      curl -fsSL -o /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg
+      chmod 644 /etc/apt/keyrings/githubcli-archive-keyring.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        > /etc/apt/sources.list.d/github-cli.list
+      apt-get update -q
+      apt-get install -y gh
+
+      # --- GitLab CLI (.deb from latest GitLab release, sha256-checked) ---
+      GLAB_VERSION="$(curl -fsSL https://gitlab.com/api/v4/projects/gitlab-org%2Fcli/releases/permalink/latest | jq -r '.tag_name | ltrimstr("v")')"
+      GLAB_ASSET="glab_${GLAB_VERSION}_linux_$(dpkg --print-architecture).deb"
+      GLAB_URL="https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads"
+      curl -fsSL -o "/tmp/${GLAB_ASSET}" "${GLAB_URL}/${GLAB_ASSET}"
+      (cd /tmp && curl -fsSL "${GLAB_URL}/checksums.txt" | grep " ${GLAB_ASSET}\$" | sha256sum -c -)
+      apt-get install -y "/tmp/${GLAB_ASSET}"
+      rm -f "/tmp/${GLAB_ASSET}"
 
       # --- Git identity (substituted by yorb.sh from host git config) ---
       if [ -n "${GIT_NAME}" ];  then git config --system user.name  "${GIT_NAME}";  fi

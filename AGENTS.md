@@ -22,12 +22,14 @@ Both templates auto-detect the distro from `/etc/os-release`: Ubuntu uses `ppa:o
 | Node.js 24 LTS + npm | NodeSource |
 | Deno | official installer → `/usr/local` |
 | Bun | official installer → `/usr/local` |
-| Claude Code | `npm install -g @anthropic-ai/claude-code` |
+| Claude Code | `claude.ai/install.sh` as the default user → `~/.local/bin/claude`, symlinked to `/usr/local/bin/claude` |
 | Codex | `npm install -g @openai/codex` |
 | opencode | `opencode.ai/install` → `/usr/local/bin/opencode` |
 | agent-browser | `npm install -g agent-browser` |
 | crit | GitHub release binary (sha256-checked) → `/usr/local/bin/crit` (CLI only, no agent plugins) |
 | plannotator | `plannotator.ai/install.sh --minimal` → `/usr/local/bin/plannotator` (CLI only, no skills/hooks) |
+| GitHub CLI (`gh`) | official apt repo `cli.github.com/packages` |
+| GitLab CLI (`glab`) | `.deb` from latest `gitlab-org/cli` release (sha256-checked) |
 | htop, mc, git, ssh, curl, wget, jq | apt packages |
 
 ## Create a VM
@@ -88,6 +90,12 @@ Add new tools to the script block; keep commands idempotent.
 - PHP 8.5 requires `ppa:ondrej/php` — not in the Ubuntu 24.04 main repo.
 - `opencode` installs to `/root/.opencode`; the setup script symlinks the binary
   to `/usr/local/bin/opencode` and sets permissions so all users can execute it.
+- Claude Code uses the native installer (not npm) run as the default user, so its
+  auto-updater can write to `~/.local/share/claude`. `--apply` also removes an old
+  global npm install.
+- Claude Code defaults are merged into the default user's `~/.claude/settings.json`
+  with `jq` (other keys are kept): no commit/PR attribution, model `claude-sonnet-5-5`,
+  transcripts kept 730 days (`cleanupPeriodDays`).
 - `plannotator` is installed with `--minimal`: binary only, no Claude/Codex/OpenCode
   skills, hooks or slash commands. The installer always targets `$HOME/.local/bin`,
   so the setup script copies it to `/usr/local/bin`.
